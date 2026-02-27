@@ -28,16 +28,16 @@
         <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
       </div>
 
-      {% if job.get('source') %}
+      {% if job.source %}
         <span class="source-badge source-{{ job.source }}">{{ job.source }}</span>
       {% endif %}
 
       <div class="job-tags">
-        {% if job.get('deadline') %}<span class="job-tag tag-deadline">{{ job.deadline }}</span>{% endif %}
-        {% if job.get('experience') %}<span class="job-tag tag-experience">{{ job.experience }}</span>{% endif %}
-        {% if job.get('education') %}<span class="job-tag tag-education">{{ job.education }}</span>{% endif %}
-        {% if job.get('salary') %}<span class="job-tag tag-salary">{{ job.salary }}</span>{% endif %}
-        {% if job.get('location') %}<span class="job-tag tag-location">{{ job.location }}</span>{% endif %}
+        {% if job.deadline %}<span class="job-tag tag-deadline">{{ job.deadline }}</span>{% endif %}
+        {% if job.experience %}<span class="job-tag tag-experience">{{ job.experience }}</span>{% endif %}
+        {% if job.education %}<span class="job-tag tag-education">{{ job.education }}</span>{% endif %}
+        {% if job.salary %}<span class="job-tag tag-salary">{{ job.salary }}</span>{% endif %}
+        {% if job.location %}<span class="job-tag tag-location">{{ job.location }}</span>{% endif %}
       </div>
 
       {% if job.description %}

@@ -1,4 +1,3 @@
-import json
 import os
 import secrets
 import string
@@ -6,34 +5,68 @@ from datetime import datetime
 from functools import wraps
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
 
 from crawler import crawl_job, search_all
 
 app = Flask(__name__)
 app.secret_key = "job-tracker-practice-key"
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin1234")
 
 DETAIL_FIELDS = ("deadline", "experience", "education", "salary", "location", "requirements")
 
+# ── DB config ────────────────────────────────────────────────────
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# ── User management ──────────────────────────────────────────────
+if DATABASE_URL:
+    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "local.db"
+    )
 
-def load_users():
-    path = os.path.join(DATA_DIR, "users.json")
-    if not os.path.exists(path):
-        return []
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+db = SQLAlchemy(app)
 
 
-def save_users(users):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    path = os.path.join(DATA_DIR, "users.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(users, f, ensure_ascii=False, indent=2)
+# ── Models ───────────────────────────────────────────────────────
 
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.String(6), primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    code = db.Column(db.String(10), unique=True, nullable=False)
+    created_at = db.Column(db.String(16), nullable=False)
+    jobs = db.relationship("Job", backref="user", cascade="all, delete-orphan")
+
+
+class Job(db.Model):
+    __tablename__ = "jobs"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.String(6), db.ForeignKey("users.id"), nullable=False)
+    title = db.Column(db.String(500), nullable=False)
+    company = db.Column(db.String(200), nullable=False)
+    url = db.Column(db.String(1000), default="")
+    description = db.Column(db.Text, default="")
+    memo = db.Column(db.Text, default="")
+    status = db.Column(db.String(20), default="관심")
+    created_at = db.Column(db.String(16), nullable=False)
+    source = db.Column(db.String(50), default="")
+    deadline = db.Column(db.String(100), default="")
+    experience = db.Column(db.String(100), default="")
+    education = db.Column(db.String(100), default="")
+    salary = db.Column(db.String(100), default="")
+    location = db.Column(db.String(200), default="")
+    requirements = db.Column(db.Text, default="")
+
+
+with app.app_context():
+    db.create_all()
+
+
+# ── Helpers ──────────────────────────────────────────────────────
 
 def generate_code():
     chars = string.ascii_uppercase + string.digits
@@ -42,29 +75,6 @@ def generate_code():
 
 def generate_user_id():
     return secrets.token_hex(3)
-
-
-# ── Job data (per-user) ─────────────────────────────────────────
-
-def load_jobs(user_id):
-    path = os.path.join(DATA_DIR, f"jobs_{user_id}.json")
-    if not os.path.exists(path):
-        return []
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_jobs(jobs, user_id):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    path = os.path.join(DATA_DIR, f"jobs_{user_id}.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(jobs, f, ensure_ascii=False, indent=2)
-
-
-def next_id(jobs):
-    if not jobs:
-        return 1
-    return max(j["id"] for j in jobs) + 1
 
 
 # ── Auth decorators ──────────────────────────────────────────────
@@ -87,39 +97,16 @@ def admin_required(f):
     return decorated
 
 
-# ── Migration: existing data.json → first user ──────────────────
-
-def migrate_old_data():
-    old_path = os.path.join(os.path.dirname(__file__), "data.json")
-    if not os.path.exists(old_path):
-        return
-    with open(old_path, "r", encoding="utf-8") as f:
-        old_jobs = json.load(f)
-    if not old_jobs:
-        return
-    users = load_users()
-    if not users:
-        return
-    first_user_id = users[0]["id"]
-    new_path = os.path.join(DATA_DIR, f"jobs_{first_user_id}.json")
-    if os.path.exists(new_path):
-        return
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(new_path, "w", encoding="utf-8") as f:
-        json.dump(old_jobs, f, ensure_ascii=False, indent=2)
-
-
 # ── Auth routes ──────────────────────────────────────────────────
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         code = request.form.get("code", "").strip().upper()
-        users = load_users()
-        user = next((u for u in users if u["code"] == code), None)
+        user = User.query.filter_by(code=code).first()
         if user:
-            session["user_id"] = user["id"]
-            session["user_name"] = user["name"]
+            session["user_id"] = user.id
+            session["user_name"] = user.name
             return redirect(url_for("index"))
         flash("유효하지 않은 초대 코드입니다.")
     return render_template("login.html")
@@ -145,7 +132,7 @@ def admin_login():
 @app.route("/admin/panel")
 @admin_required
 def admin_panel():
-    users = load_users()
+    users = User.query.all()
     return render_template("admin.html", mode="panel", users=users)
 
 
@@ -157,25 +144,19 @@ def admin_add_user():
         flash("사용자 이름을 입력해주세요.")
         return redirect(url_for("admin_panel"))
 
-    users = load_users()
-
     # Ensure unique code
-    existing_codes = {u["code"] for u in users}
     code = generate_code()
-    while code in existing_codes:
+    while User.query.filter_by(code=code).first():
         code = generate_code()
 
-    user = {
-        "id": generate_user_id(),
-        "name": name,
-        "code": code,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-    }
-    users.append(user)
-    save_users(users)
-
-    # Run migration after first user is created
-    migrate_old_data()
+    user = User(
+        id=generate_user_id(),
+        name=name,
+        code=code,
+        created_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+    )
+    db.session.add(user)
+    db.session.commit()
 
     flash(f"사용자 '{name}' 추가 완료! 초대 코드: {code}")
     return redirect(url_for("admin_panel"))
@@ -184,35 +165,30 @@ def admin_add_user():
 @app.route("/admin/delete-user/<user_id>", methods=["POST"])
 @admin_required
 def admin_delete_user(user_id):
-    users = load_users()
-    user = next((u for u in users if u["id"] == user_id), None)
+    user = db.session.get(User, user_id)
     if not user:
         flash("사용자를 찾을 수 없습니다.")
         return redirect(url_for("admin_panel"))
 
-    users = [u for u in users if u["id"] != user_id]
-    save_users(users)
+    name = user.name
+    db.session.delete(user)
+    db.session.commit()
 
-    # Delete user's job data file
-    jobs_path = os.path.join(DATA_DIR, f"jobs_{user_id}.json")
-    if os.path.exists(jobs_path):
-        os.remove(jobs_path)
-
-    flash(f"사용자 '{user['name']}' 삭제 완료.")
+    flash(f"사용자 '{name}' 삭제 완료.")
     return redirect(url_for("admin_panel"))
 
 
-# ── Existing routes (with @login_required) ───────────────────────
+# ── Main routes ──────────────────────────────────────────────────
 
 @app.route("/")
 @login_required
 def index():
     user_id = session["user_id"]
-    jobs = load_jobs(user_id)
+    query = Job.query.filter_by(user_id=user_id)
     status_filter = request.args.get("status", "")
     if status_filter:
-        jobs = [j for j in jobs if j["status"] == status_filter]
-    jobs.sort(key=lambda j: j["created_at"], reverse=True)
+        query = query.filter_by(status=status_filter)
+    jobs = query.order_by(Job.created_at.desc()).all()
     return render_template("index.html", jobs=jobs, current_filter=status_filter)
 
 
@@ -240,22 +216,21 @@ def crawl():
 def add():
     user_id = session["user_id"]
     if request.method == "POST":
-        jobs = load_jobs(user_id)
-        job = {
-            "id": next_id(jobs),
-            "title": request.form["title"].strip(),
-            "company": request.form["company"].strip(),
-            "url": request.form.get("url", "").strip(),
-            "description": request.form.get("description", "").strip(),
-            "memo": request.form.get("memo", "").strip(),
-            "status": "관심",
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        }
+        job = Job(
+            user_id=user_id,
+            title=request.form["title"].strip(),
+            company=request.form["company"].strip(),
+            url=request.form.get("url", "").strip(),
+            description=request.form.get("description", "").strip(),
+            memo=request.form.get("memo", "").strip(),
+            status="관심",
+            created_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+            source=request.form.get("source", "").strip(),
+        )
         for field in DETAIL_FIELDS:
-            job[field] = request.form.get(field, "").strip()
-        job["source"] = request.form.get("source", "").strip()
-        jobs.append(job)
-        save_jobs(jobs, user_id)
+            setattr(job, field, request.form.get(field, "").strip())
+        db.session.add(job)
+        db.session.commit()
         flash("공고가 추가되었습니다!")
         return redirect(url_for("index"))
     crawled = session.pop("crawled", None)
@@ -266,22 +241,21 @@ def add():
 @login_required
 def edit(job_id):
     user_id = session["user_id"]
-    jobs = load_jobs(user_id)
-    job = next((j for j in jobs if j["id"] == job_id), None)
+    job = Job.query.filter_by(id=job_id, user_id=user_id).first()
     if not job:
         flash("공고를 찾을 수 없습니다.")
         return redirect(url_for("index"))
 
     if request.method == "POST":
-        job["title"] = request.form["title"].strip()
-        job["company"] = request.form["company"].strip()
-        job["url"] = request.form.get("url", "").strip()
-        job["description"] = request.form.get("description", "").strip()
-        job["memo"] = request.form.get("memo", "").strip()
-        job["status"] = request.form["status"]
+        job.title = request.form["title"].strip()
+        job.company = request.form["company"].strip()
+        job.url = request.form.get("url", "").strip()
+        job.description = request.form.get("description", "").strip()
+        job.memo = request.form.get("memo", "").strip()
+        job.status = request.form["status"]
         for field in DETAIL_FIELDS:
-            job[field] = request.form.get(field, "").strip()
-        save_jobs(jobs, user_id)
+            setattr(job, field, request.form.get(field, "").strip())
+        db.session.commit()
         flash("공고가 수정되었습니다!")
         return redirect(url_for("index"))
     return render_template("edit.html", job=job)
@@ -291,9 +265,10 @@ def edit(job_id):
 @login_required
 def delete(job_id):
     user_id = session["user_id"]
-    jobs = load_jobs(user_id)
-    jobs = [j for j in jobs if j["id"] != job_id]
-    save_jobs(jobs, user_id)
+    job = Job.query.filter_by(id=job_id, user_id=user_id).first()
+    if job:
+        db.session.delete(job)
+        db.session.commit()
     flash("공고가 삭제되었습니다.")
     return redirect(url_for("index"))
 
@@ -345,8 +320,9 @@ def search():
             return redirect(url_for("search"))
 
         user_id = session["user_id"]
-        jobs = load_jobs(user_id)
-        existing_urls = {j["url"] for j in jobs if j.get("url")}
+        existing_urls = {
+            j.url for j in Job.query.filter_by(user_id=user_id).all() if j.url
+        }
 
         return render_template(
             "search_results.html",
@@ -370,8 +346,9 @@ def search_save():
         return redirect(url_for("search"))
 
     user_id = session["user_id"]
-    jobs = load_jobs(user_id)
-    existing_urls = {j["url"] for j in jobs if j.get("url")}
+    existing_urls = {
+        j.url for j in Job.query.filter_by(user_id=user_id).all() if j.url
+    }
     new_count = 0
 
     for idx in selected:
@@ -383,26 +360,26 @@ def search_save():
         if not title or not url or url in existing_urls:
             continue
 
-        job = {
-            "id": next_id(jobs),
-            "title": title,
-            "company": company,
-            "url": url,
-            "description": "",
-            "memo": "",
-            "status": "관심",
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "source": source,
-        }
+        job = Job(
+            user_id=user_id,
+            title=title,
+            company=company,
+            url=url,
+            description="",
+            memo="",
+            status="관심",
+            created_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+            source=source,
+        )
         for field in DETAIL_FIELDS:
-            job[field] = request.form.get(f"{field}_{idx}", "").strip()
+            setattr(job, field, request.form.get(f"{field}_{idx}", "").strip())
 
-        jobs.append(job)
+        db.session.add(job)
         existing_urls.add(url)
         new_count += 1
 
     if new_count > 0:
-        save_jobs(jobs, user_id)
+        db.session.commit()
         flash(f"{new_count}개 공고가 저장되었습니다!")
     else:
         flash("새로 저장된 공고가 없습니다 (이미 저장된 공고일 수 있습니다).")
