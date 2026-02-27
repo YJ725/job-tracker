@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 - 채용공고 트래커</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% if mode == 'login' %}
+  <div class="login-page">
+    <div class="login-card">
+      <h1>관리자 로그인</h1>
+      <p class="login-subtitle">관리자 비밀번호를 입력하세요</p>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="flash">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('admin_login') }}">
+        <div class="form-group">
+          <input type="password" name="password" placeholder="비밀번호" required autofocus>
+        </div>
+        <button type="submit" class="btn" style="width:100%;">로그인</button>
+      </form>
+
+      <div class="login-footer">
+        <a href="{{ url_for('login') }}">사용자 로그인으로 돌아가기</a>
+      </div>
+    </div>
+  </div>
+
+{% elif mode == 'panel' %}
+  <header>
+    <div class="container">
+      <h1><a href="{{ url_for('admin_panel') }}" style="color:white;text-decoration:none;">관리자 패널</a></h1>
+      <nav class="header-nav">
+        <a href="{{ url_for('login') }}">사용자 로그인</a>
+        <a href="{{ url_for('logout') }}">로그아웃</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="admin-section">
+      <h2>사용자 추가</h2>
+      <form method="POST" action="{{ url_for('admin_add_user') }}" class="admin-add-form">
+        <input type="text" name="name" placeholder="사용자 이름" required>
+        <button type="submit" class="btn">추가</button>
+      </form>
+    </div>
+
+    <div class="admin-section">
+      <h2>사용자 목록 <span class="user-count">{{ users|length }}명</span></h2>
+      {% if users %}
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>초대 코드</th>
+              <th>생성일</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.name }}</td>
+              <td><code class="invite-code">{{ user.code }}</code></td>
+              <td class="date-cell">{{ user.created_at }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}"
+                      onsubmit="return confirm('정말 삭제하시겠습니까? 해당 사용자의 모든 데이터가 삭제됩니다.');">
+                  <button type="submit" class="btn-small btn-danger">삭제</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="empty-text">등록된 사용자가 없습니다.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+</body>
+</html>

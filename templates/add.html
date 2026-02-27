@@ -3,22 +3,68 @@
 
 <div class="form-card">
   <h2>공고 추가</h2>
+
+  {% if crawled %}
+  <div class="crawl-notice">
+    크롤링된 정보가 자동으로 채워졌습니다. 확인 후 저장해주세요.
+  </div>
+  {% endif %}
+
   <form method="post">
     <div class="form-group">
       <label for="title">공고 제목 *</label>
-      <input type="text" id="title" name="title" required placeholder="예: 백엔드 개발자 채용">
+      <input type="text" id="title" name="title" required placeholder="예: 백엔드 개발자 채용"
+             value="{{ crawled.title if crawled else '' }}">
     </div>
     <div class="form-group">
       <label for="company">회사명 *</label>
-      <input type="text" id="company" name="company" required placeholder="예: 카카오">
+      <input type="text" id="company" name="company" required placeholder="예: 카카오"
+             value="{{ crawled.company if crawled else '' }}">
     </div>
     <div class="form-group">
       <label for="url">공고 링크</label>
-      <input type="url" id="url" name="url" placeholder="https://...">
+      <input type="url" id="url" name="url" placeholder="https://..."
+             value="{{ crawled.url if crawled else '' }}">
+    </div>
+
+    <h3 class="form-section-title">상세 조건</h3>
+    <div class="form-row">
+      <div class="form-group form-half">
+        <label for="deadline">모집 기간</label>
+        <input type="text" id="deadline" name="deadline" placeholder="예: 2026-03-01 ~ 2026-03-31"
+               value="{{ crawled.deadline if crawled else '' }}">
+      </div>
+      <div class="form-group form-half">
+        <label for="experience">경력 조건</label>
+        <input type="text" id="experience" name="experience" placeholder="예: 신입/경력 3년 이상"
+               value="{{ crawled.experience if crawled else '' }}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group form-half">
+        <label for="education">학력 조건</label>
+        <input type="text" id="education" name="education" placeholder="예: 대졸 이상"
+               value="{{ crawled.education if crawled else '' }}">
+      </div>
+      <div class="form-group form-half">
+        <label for="salary">급여 정보</label>
+        <input type="text" id="salary" name="salary" placeholder="예: 3,500~4,500만원"
+               value="{{ crawled.salary if crawled else '' }}">
+      </div>
     </div>
     <div class="form-group">
+      <label for="location">근무지</label>
+      <input type="text" id="location" name="location" placeholder="예: 서울 강남구"
+             value="{{ crawled.location if crawled else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="requirements">자격 요건 상세</label>
+      <textarea id="requirements" name="requirements" rows="3" placeholder="TOEIC 800 이상, 관련 자격증 등">{{ crawled.requirements if crawled else '' }}</textarea>
+    </div>
+
+    <div class="form-group">
       <label for="description">공고 내용 요약</label>
-      <textarea id="description" name="description" rows="4" placeholder="주요 자격요건, 우대사항 등"></textarea>
+      <textarea id="description" name="description" rows="4" placeholder="주요 자격요건, 우대사항 등">{{ crawled.description if crawled else '' }}</textarea>
     </div>
     <div class="form-group">
       <label for="memo">메모</label>

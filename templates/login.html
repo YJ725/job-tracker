@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 - 채용공고 트래커</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <h1>채용공고 트래커</h1>
+      <p class="login-subtitle">초대 코드를 입력하여 접속하세요</p>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="flash">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+          <input type="text" name="code" placeholder="TRACK-XXXX" required
+                 autocomplete="off" autofocus
+                 style="text-align:center; font-size:1.2rem; letter-spacing:2px; text-transform:uppercase;">
+        </div>
+        <button type="submit" class="btn" style="width:100%;">접속</button>
+      </form>
+
+      <div class="login-footer">
+        <a href="{{ url_for('admin_login') }}">관리자 로그인</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

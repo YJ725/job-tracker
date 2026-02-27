@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="search-header">
+  <h2>"{{ keyword }}" 검색 결과 ({{ total }}개)</h2>
+  <div class="search-actions-top">
+    <a href="{{ url_for('search') }}" class="btn btn-secondary">다시 검색</a>
+  </div>
+</div>
+
+<!-- 사이트별 페이지 현황 -->
+<div class="site-status-panel">
+  <h3>사이트별 검색 현황</h3>
+  <div class="site-status-grid">
+    {% for site_name in ["사람인", "잡코리아", "원티드"] %}
+      {% set info = site_info.get(site_name, {}) %}
+      <div class="site-status-card">
+        <span class="source-badge source-{{ site_name }}">{{ site_name }}</span>
+        <div class="site-status-detail">
+          <span class="site-count">{{ info.get('count', 0) }}개 수집</span>
+          {% if info.get('pages_crawled', 0) > 0 %}
+            {% if info.get('total_pages', 0) > 0 %}
+              <span class="site-pages">{{ info.get('first_page', 1) }}~{{ info.get('last_page', 1) }}페이지 (전체 {{ info.get('total_pages', 0) }}페이지)</span>
+            {% else %}
+              <span class="site-pages">{{ info.get('first_page', 1) }}~{{ info.get('last_page', 1) }}페이지 검색</span>
+            {% endif %}
+          {% else %}
+            <span class="site-pages">검색 결과 없음</span>
+          {% endif %}
+        </div>
+        {% if info.get('total_jobs', 0) > 0 %}
+          <div class="site-total-info">
+            전체 약 {{ "{:,}".format(info.get('total_jobs', 0)) }}개 공고
+            {% if info.get('has_more') %}
+              (미수집: 약 {{ "{:,}".format(info.get('total_jobs', 0) - info.get('count', 0)) }}개)
+            {% endif %}
+          </div>
+        {% endif %}
+        {% if info.get('error') %}
+          <div class="site-status-msg status-error">검색 중 오류가 발생했습니다.</div>
+        {% elif info.get('has_more') %}
+          <div class="site-status-msg status-more">아직 페이지가 남아있습니다.</div>
+        {% else %}
+          <div class="site-status-msg status-done">마지막 페이지입니다.</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('search_save') }}" id="saveForm">
+  <div class="search-toolbar">
+    <label class="select-all-label">
+      <input type="checkbox" id="selectAll"> 전체 선택
+    </label>
+    <button type="submit" class="btn">선택 항목 저장</button>
+  </div>
+
+  <div class="result-grid">
+    {% for item in results %}
+    <div class="result-card {% if item.url in existing_urls %}already-saved{% endif %}">
+      <div class="result-card-top">
+        <label class="result-checkbox">
+          {% if item.url in existing_urls %}
+            <input type="checkbox" disabled>
+            <span class="saved-label">저장됨</span>
+          {% else %}
+            <input type="checkbox" name="selected" value="{{ loop.index0 }}">
+          {% endif %}
+        </label>
+        <span class="source-badge source-{{ item.source }}">{{ item.source }}</span>
+      </div>
+
+      <h3>
+        {% if item.url %}
+          <a href="{{ item.url }}" target="_blank">{{ item.title }}</a>
+        {% else %}
+          {{ item.title }}
+        {% endif %}
+      </h3>
+      <div class="result-company">{{ item.company }}</div>
+
+      <div class="job-tags">
+        {% if item.get('experience') %}<span class="job-tag tag-experience">{{ item.experience }}</span>{% endif %}
+        {% if item.get('location') %}<span class="job-tag tag-location">{{ item.location }}</span>{% endif %}
+        {% if item.get('education') %}<span class="job-tag tag-education">{{ item.education }}</span>{% endif %}
+        {% if item.get('deadline') %}<span class="job-tag tag-deadline">{{ item.deadline }}</span>{% endif %}
+        {% if item.get('salary') %}<span class="job-tag tag-salary">{{ item.salary }}</span>{% endif %}
+      </div>
+
+      <!-- hidden fields -->
+      <input type="hidden" name="title_{{ loop.index0 }}" value="{{ item.title }}">
+      <input type="hidden" name="company_{{ loop.index0 }}" value="{{ item.company }}">
+      <input type="hidden" name="url_{{ loop.index0 }}" value="{{ item.url }}">
+      <input type="hidden" name="source_{{ loop.index0 }}" value="{{ item.source }}">
+      <input type="hidden" name="deadline_{{ loop.index0 }}" value="{{ item.get('deadline', '') }}">
+      <input type="hidden" name="experience_{{ loop.index0 }}" value="{{ item.get('experience', '') }}">
+      <input type="hidden" name="education_{{ loop.index0 }}" value="{{ item.get('education', '') }}">
+      <input type="hidden" name="salary_{{ loop.index0 }}" value="{{ item.get('salary', '') }}">
+      <input type="hidden" name="location_{{ loop.index0 }}" value="{{ item.get('location', '') }}">
+      <input type="hidden" name="requirements_{{ loop.index0 }}" value="{{ item.get('requirements', '') }}">
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="search-toolbar bottom">
+    <label class="select-all-label">
+      <input type="checkbox" class="selectAllBottom"> 전체 선택
+    </label>
+    <button type="submit" class="btn">선택 항목 저장</button>
+  </div>
+</form>
+
+<script>
+  const checkboxes = document.querySelectorAll('input[name="selected"]');
+  const selectAlls = document.querySelectorAll('#selectAll, .selectAllBottom');
+
+  selectAlls.forEach(sa => {
+    sa.addEventListener('change', function() {
+      checkboxes.forEach(cb => { cb.checked = this.checked; });
+      selectAlls.forEach(other => { other.checked = this.checked; });
+    });
+  });
+</script>
+
+{% endblock %}

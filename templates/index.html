@@ -10,7 +10,7 @@
   <a href="{{ url_for('index', status='탈락') }}" class="{{ 'active' if current_filter == '탈락' }}">탈락</a>
 </div>
 
-<div class="job-list">
+<div class="job-grid">
   {% if jobs %}
     {% for job in jobs %}
     <div class="job-card">
@@ -28,8 +28,20 @@
         <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
       </div>
 
+      {% if job.get('source') %}
+        <span class="source-badge source-{{ job.source }}">{{ job.source }}</span>
+      {% endif %}
+
+      <div class="job-tags">
+        {% if job.get('deadline') %}<span class="job-tag tag-deadline">{{ job.deadline }}</span>{% endif %}
+        {% if job.get('experience') %}<span class="job-tag tag-experience">{{ job.experience }}</span>{% endif %}
+        {% if job.get('education') %}<span class="job-tag tag-education">{{ job.education }}</span>{% endif %}
+        {% if job.get('salary') %}<span class="job-tag tag-salary">{{ job.salary }}</span>{% endif %}
+        {% if job.get('location') %}<span class="job-tag tag-location">{{ job.location }}</span>{% endif %}
+      </div>
+
       {% if job.description %}
-        <p style="font-size:0.9rem; color:#555;">{{ job.description[:200] }}{% if job.description|length > 200 %}...{% endif %}</p>
+        <p class="job-desc">{{ job.description[:150] }}{% if job.description|length > 150 %}...{% endif %}</p>
       {% endif %}
 
       {% if job.memo %}

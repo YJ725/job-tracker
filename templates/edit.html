@@ -16,6 +16,37 @@
       <label for="url">공고 링크</label>
       <input type="url" id="url" name="url" value="{{ job.url }}">
     </div>
+
+    <h3 class="form-section-title">상세 조건</h3>
+    <div class="form-row">
+      <div class="form-group form-half">
+        <label for="deadline">모집 기간</label>
+        <input type="text" id="deadline" name="deadline" value="{{ job.get('deadline', '') }}">
+      </div>
+      <div class="form-group form-half">
+        <label for="experience">경력 조건</label>
+        <input type="text" id="experience" name="experience" value="{{ job.get('experience', '') }}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group form-half">
+        <label for="education">학력 조건</label>
+        <input type="text" id="education" name="education" value="{{ job.get('education', '') }}">
+      </div>
+      <div class="form-group form-half">
+        <label for="salary">급여 정보</label>
+        <input type="text" id="salary" name="salary" value="{{ job.get('salary', '') }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="location">근무지</label>
+      <input type="text" id="location" name="location" value="{{ job.get('location', '') }}">
+    </div>
+    <div class="form-group">
+      <label for="requirements">자격 요건 상세</label>
+      <textarea id="requirements" name="requirements" rows="3">{{ job.get('requirements', '') }}</textarea>
+    </div>
+
     <div class="form-group">
       <label for="description">공고 내용 요약</label>
       <textarea id="description" name="description" rows="4">{{ job.description }}</textarea>

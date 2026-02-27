@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="form-card">
+  <h2>URL 크롤링</h2>
+  <p class="crawl-info">채용공고 URL을 입력하면 자동으로 정보를 가져옵니다.</p>
+
+  <div class="site-badges">
+    <span class="site-badge saramin">사람인</span>
+    <span class="site-badge jobkorea">잡코리아</span>
+    <span class="site-badge wanted">원티드</span>
+  </div>
+
+  <form method="post">
+    <div class="form-group">
+      <label for="url">채용공고 URL</label>
+      <input type="url" id="url" name="url" required
+             placeholder="https://www.saramin.co.kr/zf_user/jobs/relay/view?rec_idx=...">
+    </div>
+    <button type="submit" class="btn">크롤링</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary" style="margin-left:8px;">취소</a>
+  </form>
+</div>
+
+{% endblock %}

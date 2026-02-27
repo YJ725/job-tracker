@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="form-card">
+  <h2>키워드 검색</h2>
+  <p class="crawl-info">키워드를 입력하면 선택한 사이트에서 검색하여 결과를 보여줍니다.</p>
+
+  <form method="post" id="searchForm">
+    <!-- 사이트 선택 토글 -->
+    <div class="site-toggles">
+      <div class="site-toggle" data-site="saramin">
+        <span class="site-badge saramin">사람인</span>
+      </div>
+      <div class="site-toggle" data-site="jobkorea">
+        <span class="site-badge jobkorea">잡코리아</span>
+      </div>
+      <div class="site-toggle" data-site="wanted">
+        <span class="site-badge wanted">원티드</span>
+      </div>
+    </div>
+    <input type="hidden" name="site_saramin" id="hiddenSaramin" value="on">
+    <input type="hidden" name="site_jobkorea" id="hiddenJobkorea" value="on">
+    <input type="hidden" name="site_wanted" id="hiddenWanted" value="on">
+
+    <div class="form-group">
+      <label for="keyword">검색 키워드</label>
+      <input type="text" id="keyword" name="keyword" required
+             placeholder="예: 백엔드 개발자, 프론트엔드, 데이터 분석가">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group form-half">
+        <label>검색 페이지 범위</label>
+        <div class="page-range-row">
+          <input type="number" id="start_page" name="start_page" value="1" min="1" max="999">
+          <span class="range-sep">~</span>
+          <input type="number" id="end_page" name="end_page" value="5" min="1" max="999">
+          <span class="range-label">페이지</span>
+        </div>
+      </div>
+      <div class="form-group form-half">
+        <label class="checkbox-label-wrap">
+          <input type="checkbox" id="crawl_all" name="crawl_all">
+          <span>전체 가져오기</span>
+        </label>
+        <p class="field-hint">체크 시 시작 페이지부터 마지막 페이지까지 모든 페이지를 가져옵니다.</p>
+      </div>
+    </div>
+
+    <button type="submit" class="btn" id="searchBtn">검색</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary" style="margin-left:8px;">취소</a>
+  </form>
+
+  <div class="search-info">
+    <p>클릭하여 검색할 사이트를 선택/해제할 수 있습니다.</p>
+    <p>검색 결과에서 원하는 공고를 골라 저장할 수 있습니다.</p>
+  </div>
+</div>
+
+<!-- 로딩 오버레이 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <h3>검색 중...</h3>
+    <p id="loadingSites">선택한 사이트에서 공고를 가져오고 있습니다.</p>
+    <p class="loading-hint">페이지 수가 많을수록 시간이 오래 걸립니다.</p>
+    <div class="loading-elapsed" id="loadingElapsed">경과 시간: 0초</div>
+    <button type="button" class="btn btn-cancel" id="cancelBtn">검색 취소</button>
+  </div>
+</div>
+
+<script>
+  // ── 사이트 토글 ──
+  const toggles = document.querySelectorAll('.site-toggle');
+  const hiddenInputs = {
+    saramin: document.getElementById('hiddenSaramin'),
+    jobkorea: document.getElementById('hiddenJobkorea'),
+    wanted: document.getElementById('hiddenWanted'),
+  };
+
+  toggles.forEach(toggle => {
+    toggle.addEventListener('click', function() {
+      const site = this.dataset.site;
+      const isActive = !this.classList.contains('inactive');
+      if (isActive) {
+        this.classList.add('inactive');
+        hiddenInputs[site].value = '';
+      } else {
+        this.classList.remove('inactive');
+        hiddenInputs[site].value = 'on';
+      }
+    });
+  });
+
+  // ── 전체 가져오기 체크박스 ──
+  const crawlAll = document.getElementById('crawl_all');
+  const endPage = document.getElementById('end_page');
+
+  crawlAll.addEventListener('change', function() {
+    endPage.disabled = this.checked;
+    endPage.style.opacity = this.checked ? '0.5' : '1';
+  });
+
+  // ── 검색 시 로딩 표시 ──
+  const form = document.getElementById('searchForm');
+  const overlay = document.getElementById('loadingOverlay');
+  const elapsedEl = document.getElementById('loadingElapsed');
+  const loadingSites = document.getElementById('loadingSites');
+  let timer = null;
+
+  form.addEventListener('submit', function() {
+    // 선택된 사이트 표시
+    const sites = [];
+    toggles.forEach(t => {
+      if (!t.classList.contains('inactive')) {
+        sites.push(t.querySelector('.site-badge').textContent);
+      }
+    });
+    if (sites.length > 0) {
+      loadingSites.textContent = sites.join(', ') + '에서 공고를 가져오고 있습니다.';
+    }
+
+    overlay.classList.add('active');
+    let seconds = 0;
+    timer = setInterval(function() {
+      seconds++;
+      elapsedEl.textContent = '경과 시간: ' + seconds + '초';
+    }, 1000);
+  });
+
+  // ── 취소 버튼 ──
+  document.getElementById('cancelBtn').addEventListener('click', function() {
+    window.stop();
+    overlay.classList.remove('active');
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+  });
+</script>
+
+{% endblock %}

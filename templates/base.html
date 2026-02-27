@@ -9,8 +9,16 @@
 <body>
   <header>
     <div class="container">
-      <h1>채용공고 트래커</h1>
-      <a href="{{ url_for('add') }}">+ 공고 추가</a>
+      <h1><a href="{{ url_for('index') }}" style="color:white;text-decoration:none;">채용공고 트래커</a></h1>
+      <nav class="header-nav">
+        <a href="{{ url_for('search') }}">키워드 검색</a>
+        <a href="{{ url_for('crawl') }}">URL 크롤링</a>
+        <a href="{{ url_for('add') }}">+ 공고 추가</a>
+        {% if session.get('user_name') %}
+        <span class="user-info">{{ session.get('user_name') }}</span>
+        <a href="{{ url_for('logout') }}" class="btn-logout">로그아웃</a>
+        {% endif %}
+      </nav>
     </div>
   </header>
   <div class="container">
