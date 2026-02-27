@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="filter-bar">
+  <a href="{{ url_for('index') }}" class="{{ 'active' if not current_filter }}">전체</a>
+  <a href="{{ url_for('index', status='관심') }}" class="{{ 'active' if current_filter == '관심' }}">관심</a>
+  <a href="{{ url_for('index', status='지원예정') }}" class="{{ 'active' if current_filter == '지원예정' }}">지원예정</a>
+  <a href="{{ url_for('index', status='지원완료') }}" class="{{ 'active' if current_filter == '지원완료' }}">지원완료</a>
+  <a href="{{ url_for('index', status='합격') }}" class="{{ 'active' if current_filter == '합격' }}">합격</a>
+  <a href="{{ url_for('index', status='탈락') }}" class="{{ 'active' if current_filter == '탈락' }}">탈락</a>
+</div>
+
+<div class="job-list">
+  {% if jobs %}
+    {% for job in jobs %}
+    <div class="job-card">
+      <div class="job-card-header">
+        <div>
+          <h3>
+            {% if job.url %}
+              <a href="{{ job.url }}" target="_blank">{{ job.title }}</a>
+            {% else %}
+              {{ job.title }}
+            {% endif %}
+          </h3>
+          <div class="company">{{ job.company }}</div>
+        </div>
+        <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+      </div>
+
+      {% if job.description %}
+        <p style="font-size:0.9rem; color:#555;">{{ job.description[:200] }}{% if job.description|length > 200 %}...{% endif %}</p>
+      {% endif %}
+
+      {% if job.memo %}
+        <div class="memo">{{ job.memo }}</div>
+      {% endif %}
+
+      <div class="meta">
+        <span>{{ job.created_at }}</span>
+        <div class="actions">
+          <a href="{{ url_for('edit', job_id=job.id) }}">수정</a>
+          <form action="{{ url_for('delete', job_id=job.id) }}" method="post" style="display:inline;"
+                onsubmit="return confirm('정말 삭제하시겠습니까?')">
+            <button type="submit" class="delete">삭제</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <p>등록된 공고가 없습니다.</p>
+      <a href="{{ url_for('add') }}" class="btn">첫 공고 추가하기</a>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

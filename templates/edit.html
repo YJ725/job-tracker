@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="form-card">
+  <h2>공고 수정</h2>
+  <form method="post">
+    <div class="form-group">
+      <label for="title">공고 제목 *</label>
+      <input type="text" id="title" name="title" required value="{{ job.title }}">
+    </div>
+    <div class="form-group">
+      <label for="company">회사명 *</label>
+      <input type="text" id="company" name="company" required value="{{ job.company }}">
+    </div>
+    <div class="form-group">
+      <label for="url">공고 링크</label>
+      <input type="url" id="url" name="url" value="{{ job.url }}">
+    </div>
+    <div class="form-group">
+      <label for="description">공고 내용 요약</label>
+      <textarea id="description" name="description" rows="4">{{ job.description }}</textarea>
+    </div>
+    <div class="form-group">
+      <label for="memo">메모</label>
+      <textarea id="memo" name="memo" rows="3">{{ job.memo }}</textarea>
+    </div>
+    <div class="form-group">
+      <label for="status">상태</label>
+      <select id="status" name="status">
+        {% for s in ["관심", "지원예정", "지원완료", "합격", "탈락"] %}
+          <option value="{{ s }}" {% if job.status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn">저장</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary" style="margin-left:8px;">취소</a>
+  </form>
+  <form method="post" action="{{ url_for('delete', job_id=job.id) }}" style="margin-top:16px;" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+    <button type="submit" class="btn btn-danger">삭제</button>
+  </form>
+</div>
+
+{% endblock %}
