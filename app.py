@@ -23,10 +23,12 @@ if DATABASE_URL.startswith("postgres://"):
 
 if DATABASE_URL:
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+    print(f"[DB] Using PostgreSQL: {DATABASE_URL[:30]}...")
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "local.db"
     )
+    print("[DB] WARNING: DATABASE_URL not set, using local SQLite (data will be lost on restart!)")
 
 db = SQLAlchemy(app)
 
