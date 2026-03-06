@@ -86,6 +86,11 @@ def login_required(f):
     def decorated(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("login"))
+        user = db.session.get(User, session["user_id"])
+        if not user:
+            session.clear()
+            flash("세션이 만료되었습니다. 다시 로그인해주세요.")
+            return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated
 
